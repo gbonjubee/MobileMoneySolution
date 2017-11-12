@@ -5,6 +5,7 @@
  */
 package com.flutterwave.africa.api;
 
+import com.flutterwave.africa.bean.RequestBean;
 import com.flutterwave.africa.bean.AccountBean;
 import com.flutterwave.africa.bean.SingleDisburseBean;
 import com.flutterwave.africa.bean.ValidateBean;
@@ -132,15 +133,13 @@ public class TalkingApi {
                 if (responsecode.equals("02")) {
                     String reference = new JSONObject(payResponse).getJSONObject("data").getString("transactionreference");
                     accountBean.setTransactionreference(reference);
-                     ussdTransactionsFacade.insertTransaction(accountBean, sessionId);
+
+                    asyncInsertMethod(accountBean, requestBean.getSessionId(), ussdTransactionsFacade);
                     response = "CON Enter One Time Password  \n";
-                    
-                    //asyncInsertMethod(accountBean, requestBean.getSessionId(), ussdTransactionsFacade);
                     return response;
                 } else {
                     response = "END Request failed, please try again  \n";
                 }
-               // return response;
             }
 
             if (inputText.length == 4) {
@@ -165,8 +164,7 @@ public class TalkingApi {
                     String responsemessage = data.getString("responsemessage");
                     accountBean.setResponseCode(responsecode);
                     accountBean.setResponseDescription(responsemessage);
-                    ussdTransactionsFacade.updateTransaction(accountBean, sessionId);
-                   // asyncUpdateMethod(accountBean, requestBean.getSessionId());
+                    asyncUpdateMethod(accountBean, requestBean.getSessionId());
                     if (responsecode.equals("00")) {
                         response = "END " + responsemessage;
                     } else {
@@ -223,9 +221,6 @@ public class TalkingApi {
                 }
                 return response;
             }
-//            if (inputText.length > 3) {
-//                response = "END";
-//            }
             return response;
 
         }
@@ -235,131 +230,6 @@ public class TalkingApi {
             return response;
         }
 
-        return response;
-    }
-
-    public String Menu2(RequestBean requestBean, String[] inputText, USSDTransactionsFacade ussdTransactionsFacade) {
-        AccountBean accountBean = new AccountBean();
-        String response = "END An error occured";
-
-        if (inputText.length == 2) {
-            accountBean.setAccountnumber(inputText[1]);
-            accountBean.setBankcode(Util.getBankCode());
-            String name = ServiceHelper.resolveAccount(accountBean);
-            response = "CON " + name + " \n " + "Enter amount to debit: ";
-            return response;
-        }
-
-        if (inputText.length == 3) {
-            try {
-                Double.parseDouble(inputText[2]);
-
-            } catch (NumberFormatException e) {
-                LOG.error(e);
-                response = "END Invalid amount  \n";
-                return response;
-            }
-            accountBean.setAccountnumber(inputText[1]);
-            accountBean.setAmount(inputText[2]);
-            accountBean.setBankcode(Util.getBankCode());
-            String name = ServiceHelper.resolveAccount(accountBean);
-            if (name == null || name.isEmpty()) {
-                return "END Account cannot be resolved";
-            }
-            accountBean.setFirstname(name.split("\\s+")[0]);
-            accountBean.setLastname(name.split("\\s+")[1]);
-            String payResponse = ServiceHelper.testCollection(accountBean);
-
-            System.out.println("payResponse: " + payResponse);
-            String responsecode = new JSONObject(payResponse).getJSONObject("data").getString("responsecode");
-            if (responsecode.equals("02")) {
-                String reference = new JSONObject(payResponse).getJSONObject("data").getString("transactionreference");
-                accountBean.setTransactionreference(reference);
-                response = "CON Enter One Time Password  \n";
-                asyncInsertMethod(accountBean, requestBean.getSessionId(), ussdTransactionsFacade);
-            } else {
-                response = "END Request failed, please try again  \n";
-            }
-            return response;
-        }
-
-        if (inputText.length == 4) {
-
-            USSDTransactions ussdTransactions = ussdTransactionsFacade.selectTransaction(requestBean.getSessionId());
-            if (ussdTransactions == null) {
-                response = "END Account OTP validation failed ";
-            } else {
-                String otp = inputText[3];
-
-                ValidateBean otpValidation = new ValidateBean();
-                otpValidation.setMerchantid(Util.getMerchantID());
-                otpValidation.setTransactionreference(ussdTransactions.getTransactionreference());
-                otpValidation.setValidateparameter("OTP");
-                otpValidation.setValidateparametervalue(otp);
-
-                String validateResponse = ServiceHelper.validateCollection(otpValidation);
-
-                System.out.println("OTP Validation: " + validateResponse);
-                JSONObject data = new JSONObject(validateResponse).getJSONObject("data");
-                String responsecode = data.getString("responsecode");
-                String responsemessage = data.getString("responsemessage");
-                accountBean.setResponseCode(responsecode);
-                accountBean.setResponseDescription(responsemessage);
-                asyncUpdateMethod(accountBean, requestBean.getSessionId());
-                if (responsecode.equals("00")) {
-                    response = "END " + responsemessage;
-                } else {
-                    response = "END Transaction Failed,please try again later";
-                }
-                return response;
-            }
-        }
-        return response;
-    }
-
-    public String Menu3(RequestBean requestBean, String[] inputText, USSDTransactionsFacade ussdTransactionsFacade) {
-        AccountBean accountBean = new AccountBean();
-        String response = "END An error occured";
-
-        if (inputText.length == 3) {
-            accountBean.setAccountnumber(inputText[1]);
-            accountBean.setBankcode(Util.getBankCode());
-            String name = ServiceHelper.resolveAccount(accountBean);
-            response = "CON " + name + " \n " + "Enter amount to debit: ";
-            return response;
-        }
-        if (inputText.length == 3) {
-            try {
-                Double.parseDouble(inputText[2]);
-
-            } catch (Exception e) {
-                LOG.error(e);
-                response = "END Invalid amount  \n";
-                return response;
-            }
-            SingleDisburseBean singleDisburseBean = new SingleDisburseBean();
-            accountBean.setAccountnumber(inputText[1]);
-            accountBean.setBankcode(Util.getBankCode());
-            String name = ServiceHelper.resolveAccount(accountBean);
-            if (name == null || name.isEmpty()) {
-                return "END Account cannot be resolved";
-            }
-            singleDisburseBean.setAccountNumber(inputText[1]);
-            singleDisburseBean.setAmount(inputText[2]);
-            singleDisburseBean.setBankcode(Util.getBankCode());
-            singleDisburseBean.setSenderName(name);
-            String payResponse = ServiceHelper.testPay(singleDisburseBean);
-            String responsecode = new JSONObject(payResponse).getJSONObject("data").getJSONObject("data").getString("responsecode");
-            if (responsecode.equals("00")) {
-                response = "END \n" + new JSONObject(payResponse).getJSONObject("data").getJSONObject("data").getString("responsemessage");
-            } else {
-                response = "END Request failed, please try again  \n";
-            }
-            return response;
-        }
-        if (inputText.length > 3) {
-            response = "END";
-        }
         return response;
     }
 
@@ -392,16 +262,6 @@ public class TalkingApi {
             }
         };
         new Thread(task, "ServiceThread").start();
-    }
-
-    @POST
-    @Path("pay")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    public String testPAY(AccountBean accountBean) {
-
-        String payResponse = ServiceHelper.testCollection(accountBean);
-        return payResponse;
     }
 
 }

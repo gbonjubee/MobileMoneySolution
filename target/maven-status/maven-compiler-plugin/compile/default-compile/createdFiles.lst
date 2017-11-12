@@ -6,6 +6,7 @@ com/flutterwave/africa/bean/ValidateBean.class
 com/flutterwave/africa/util/StandardRestResponse.class
 com/flutterwave/africa/db/AbstractFacade.class
 com/flutterwave/africa/util/JSend.class
+com/flutterwave/africa/bean/RequestBean.class
 com/flutterwave/africa/api/TalkingApi$2.class
 com/flutterwave/africa/api/TalkingApi.class
 com/flutterwave/africa/api/TalkingApi$1.class
@@ -14,5 +15,4 @@ com/flutterwave/africa/util/Util.class
 com/flutterwave/africa/util/EncryptionHelper.class
 com/flutterwave/africa/db/USSDTransactions_.class
 com/flutterwave/africa/service/ServiceHelper.class
-com/flutterwave/africa/api/RequestBean.class
 com/flutterwave/africa/util/ResponseFormatter.class
